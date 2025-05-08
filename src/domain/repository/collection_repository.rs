@@ -1,0 +1,81 @@
+use anyhow::Ok;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+use uuid::Uuid;
+use crate::{domain::model::entity::{collection, collection_item, prelude::Collection, prelude::CollectionItem}, infrastructure::database_connection};
+
+/// 根据collection_id获取专辑 
+pub async fn get_by_id(collection_id: &String) -> Option<collection::Model> {
+    Collection::find_by_id(Uuid::parse_str(&collection_id).unwrap()).one(database_connection::get_db().as_ref()).await.unwrap()
+}
+
+/// 根据collection_id和author_id获取我的专辑
+pub async fn get_my_collection_by_id(collection_id: &String, author_id: &String) -> Option<collection::Model> {
+    let opt = Collection::find_by_id(Uuid::parse_str(&collection_id).unwrap()).one(database_connection::get_db().as_ref()).await.unwrap();
+    if opt.is_some() {
+        let collection = opt.unwrap();
+        if collection.author.eq(author_id) && collection.status == 1 {
+            return Option::Some(collection);
+        }
+    }
+    Option::None
+}
+
+/// 根据Author获取专辑列表
+pub async fn get_by_author(author_id: &String) -> Vec<crate::domain::model::entity::collection::Model> {
+    let db = database_connection::get_db();
+    Collection::find().filter(collection::Column::Author.eq(author_id))
+    .filter(collection::Column::IsPublic.eq(1))
+    .order_by_desc(collection::Column::CreatedTime)
+    .all(db.as_ref())
+    .await.expect("Database error")
+}
+
+/// 创建专辑
+pub async fn create_collection(collection: collection::ActiveModel) -> Result<(), anyhow::Error> {
+    collection.insert(database_connection::get_db().as_ref()).await?;
+    Ok(())
+}
+
+/// 根据title搜索我的专辑
+pub async fn search_collection_by(title: &String, author_id: &String) -> Result<Vec<crate::domain::model::entity::collection::Model>, anyhow::Error> {
+    let results = Collection::find().filter(collection::Column::Author.eq(author_id))
+    .filter(collection::Column::Title.eq(title))
+    .filter(collection::Column::Status.eq(1))
+    .all(database_connection::get_db().as_ref())
+    .await;
+    if results.is_err() {
+        return Err(results.err().unwrap().into());
+    }
+    Ok(results.unwrap())
+}
+
+/// 创建collection item
+pub async fn create_collection_item(collection_item: collection_item::ActiveModel) -> Result<(), anyhow::Error> {
+    collection_item.insert(database_connection::get_db().as_ref()).await?;
+    Ok(())
+}
+
+/// 专辑所有图文
+pub async fn get_articles_by(collection_id: &String) -> Result<Vec<crate::domain::model::entity::collection_item::Model>, anyhow::Error> {
+    let results = CollectionItem::find().filter(collection_item::Column::CollectionId.eq(collection_id))
+    .filter(collection_item::Column::Status.eq(1))
+    .order_by_desc(collection_item::Column::CreatedTime)
+    .all(database_connection::get_db().as_ref())
+    .await;
+    if results.is_err() {
+        return Err(results.err().unwrap().into());
+    }
+    Ok(results.unwrap())
+}
+
+/// 图文
+pub async fn get_article_by_id(article_id: &String) -> Option<crate::domain::model::entity::collection_item::Model> {
+    let opt = CollectionItem::find_by_id(Uuid::parse_str(&article_id).unwrap()).one(database_connection::get_db().as_ref()).await.unwrap();
+    if opt.is_some() {
+        let article = opt.unwrap();
+        if article.category == "article" {
+            return Some(article);
+        }
+    }
+    Option::None
+}
