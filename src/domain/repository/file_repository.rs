@@ -8,7 +8,7 @@ pub async fn add_file(file_entity: file_entity::ActiveModel) -> Result<(), anyho
     Ok(())
 }
 
-/// 更新文件
-pub async fn update_file(file_entity: file_entity::ActiveModel) -> Result<(), anyhow::Error> {
-    todo!("更新文件");
-}
+// /// 更新文件
+// pub async fn update_file(file_entity: file_entity::ActiveModel) -> Result<(), anyhow::Error> {
+//     todo!("更新文件");
+// }

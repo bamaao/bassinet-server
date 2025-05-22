@@ -1,10 +1,12 @@
 
 use std::{env, /*net::SocketAddr,*/ path::{Path, /*PathBuf*/}, /*str::FromStr,*/ sync::Arc};
 
+use application::{command_service::account_application_service, query_service::account_query_service};
 use axum::{http::{Method, StatusCode}, response::IntoResponse, routing::{get, post}, Router};
 use config::{Config, File};
+use infrastructure::messaging::{account_bound_consumer::account_bound_consumer, coin_published_consumer::coin_published_consumer, load_config, nft_published_consumer::nft_published_consumer};
 // use futures::StreamExt;
-use interface::rest::{file_api, logon_api::{sign_in, sign_up}, my_collection_api::{self}, public_collection_api, request_id};
+use interface::rest::{account_api, dto::logon::SignUpPayload, file_api, logon_api::{sign_in, sign_up}, my_collection_api::{self}, public_collection_api, request_id};
 // use tokio_rustls_acme::{axum::AxumAcceptor, caches::DirCache, AcmeConfig};
 use tower_http::{cors::{Any, CorsLayer}, services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -44,6 +46,14 @@ async fn main() -> Result<(), anyhow::Error>{
     ).with(tracing_subscriber::fmt::layer())
     .init();
 
+    // let payload = &SignUpPayload { 
+    //     request_id: uuid::Uuid::new_v4().to_string(), 
+    //     pub_key: "5db78102fb201d8e150d5e1575640021cb2a7b3a50dec558a1a727a723a1ec8b".to_string(), 
+    //     nick_name: "Bassinet".to_string(), 
+    //     sig: "".to_string()
+    // };
+    // let _ = account_application_service::register_account(payload).await;
+
     // rustls::crypto::ring::default_provider().install_default().expect("Failed to install rustls crypto provider");
 
     // let path_buf = PathBuf::from_str("./conf").unwrap();
@@ -68,6 +78,9 @@ async fn main() -> Result<(), anyhow::Error>{
     //     }
     // });
 
+    // let rocksdb_dir_path = std::env::var("ROCKSDB_STORE_DIR_PATH").expect("ROCKSDB_STORE_DIR_PATH must be set");
+    // let db = RocksDB::init(rocksdb_dir_path.as_str());
+
     // 读取配置
     let settings = Config::builder()
     .add_source(File::from(Path::new("conf/default.toml")))
@@ -86,12 +99,23 @@ async fn main() -> Result<(), anyhow::Error>{
     let assets_path = settings.get_string("assets_path").unwrap();
 
     let settings = Arc::new(settings);
+
+    let mq_config  = Arc::new(load_config().await);
     tokio::join!(
         // web service
         http_web_serve(webservice_router(settings), &web_addr),
         // https_web_serve(webservice_router(settings), addr, acceptor),
         // static assets
         assets_serve(using_serve_dir(&assets_path), &assets_addr),
+        async {
+            let _ = account_bound_consumer(mq_config.clone()).await;
+        },
+        async {
+            let _ = coin_published_consumer(mq_config.clone()).await;
+        },
+        async {
+            let _ = nft_published_consumer(mq_config.clone()).await;
+        }
     );
 
     Ok(())
@@ -120,14 +144,20 @@ fn webservice_router(settings: Arc<Config>) -> Router{
 
     let app = Router::new()
     .route("/upload", post(file_api::upload_file))
+    .route("/upload_icon", post(file_api::upload_icon_file))
     .route("/signup", post(sign_up))
     .route("/signin", post(sign_in))
+    .route("/account_info", get(account_api::get_account_info))
     .route("/my_collections", post(my_collection_api::create_collection).get(my_collection_api::get_my_collections))
     .route("/my_collections/{collection_id}", get(my_collection_api::get_my_collection_info_by_id))
     .route("/simple_collections", get(my_collection_api::get_simple_collections))
     .route("/author/{author_id}/collections", get(public_collection_api::get_author_collections))
     .route("/collections", get(public_collection_api::search_collections))
     .route("/collections/{collection_id}", get(public_collection_api::get_collection_info_by_id))
+    .route("/collections/{collection_id}/simpleinfo", get(public_collection_api::get_collection_simple_by_id))
+    // .route("/collections/{collection_id}/image", get(public_collection_api::get_image))
+    // .route("/collections/{collection_id}/thumbnail", get(public_collection_api::get_image))
+    .route("/authors", get(account_api::get_authors))
     .route("/articles", post(my_collection_api::create_article))
     .route("/articles/{article_id}", get(public_collection_api::get_article_by_id))
     .route("/request_id", get(request_id))

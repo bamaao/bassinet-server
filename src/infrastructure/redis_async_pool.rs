@@ -9,6 +9,7 @@ use rand::Rng;
 use redis::aio::ConnectionLike;
 use redis::{AsyncCommands, Cmd, Pipeline, RedisError, RedisFuture, Value};
 
+#[allow(dead_code)]
 pub enum Ttl {
     Simple(Duration),
     Fuzzy { min: Duration, fuzz: Duration },

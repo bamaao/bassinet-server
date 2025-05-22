@@ -8,7 +8,7 @@ pub async fn add_file(command: AddFileCommand) -> Result<FileEntityDTO, anyhow::
 
     let file_entity = file_entity::ActiveModel {
         id: Set(uuid),
-        file_name: Set(Some(command.file_name.clone())),
+        name: Set(command.file_name.clone()),
         mime: Set(command.mime.clone()),
         // length: todo!(),
         path: Set(Some(command.path.clone())),

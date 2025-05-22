@@ -3,6 +3,8 @@
 pub mod prelude;
 
 pub mod account;
+pub mod bassinet_coin;
+pub mod bassinet_nft;
 pub mod collection;
 pub mod collection_item;
 pub mod file_entity;

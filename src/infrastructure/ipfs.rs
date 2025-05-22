@@ -1,9 +1,10 @@
-use std::{fs::File, io::{Write}};
-use anyhow::{anyhow};
+use std::{fs::File, io::Write};
+use anyhow::anyhow;
 
 use futures::StreamExt;
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 
+#[allow(dead_code)]
 /**
  * 向ipfs添加文件，返回ipfs文件名
  */
@@ -23,6 +24,7 @@ pub async fn add_file(file_path: &str) -> anyhow::Result<String>{
     }
 }
 
+#[allow(dead_code)]
 /**
  * 从ipfs下载文件
  */

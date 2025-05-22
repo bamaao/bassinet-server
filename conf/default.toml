@@ -4,4 +4,4 @@ assets_path = "G:/bassinet_projects/upload"
 # 静态文件服务地址，比如图片访问
 assets_addr = "0.0.0.0:80"
 # 静态文件访问地址，比如图片访问
-assets_http_addr = "http://localhost:80/assets/"
+assets_http_addr = "http://localhost:80/assets"

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod logon;
 pub mod collection;
 pub mod file_entity;
+pub mod account;
 
 #[derive(Debug, Serialize)]
 pub struct ApiResult {
@@ -15,4 +16,5 @@ pub struct PageQueryArgs {
     pub page: Option<u32>,
     pub page_size: Option<u32>,
     pub keyword: Option<String>,
+    pub author: Option<String>,
 }

@@ -10,18 +10,19 @@ pub struct CollectionDTO {
     // 是否公开
     pub is_public: u32,
     pub request_id: String,
+    pub icon_path: String,
 }
 
-///图集
-#[derive(Debug, Deserialize)]
-pub struct ImageGalleryDTO {
-    // 名称
-    pub name: String,
-    // 专辑ID(uuid)
-    pub collection_id: String,
-    pub description: String,
-    pub request_id: String,
-}
+// ///图集
+// #[derive(Debug, Deserialize)]
+// pub struct ImageGalleryDTO {
+//     // 名称
+//     pub name: String,
+//     // 专辑ID(uuid)
+//     pub collection_id: String,
+//     pub description: String,
+//     pub request_id: String,
+// }
 
 ///图文
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,68 +38,68 @@ pub struct ArticleDTO {
     pub request_id: String,
 }
 
-///视频
-#[derive(Debug, Deserialize)]
-pub struct VideoDTO {
-    // 标题
-    pub title: String,
-    // 专辑ID(uuid)
-    pub collection_id: String,
-    // 简要描述
-    pub description: String,
-    // 存储路径
-    pub store_path: String,
-    // 视频格式，目前只支持mp4
-    pub video_format: String,
-    pub request_id: String,
-}
+// ///视频
+// #[derive(Debug, Deserialize)]
+// pub struct VideoDTO {
+//     // 标题
+//     pub title: String,
+//     // 专辑ID(uuid)
+//     pub collection_id: String,
+//     // 简要描述
+//     pub description: String,
+//     // 存储路径
+//     pub store_path: String,
+//     // 视频格式，目前只支持mp4
+//     pub video_format: String,
+//     pub request_id: String,
+// }
 
-///音频
-#[derive(Debug, Deserialize)]
-pub struct AudioDTO {
-    // 标题
-    pub title: String,
-    // 专辑ID(uuid)
-    pub collection_id: String,
-    pub description: String,
-    // 存储路径
-    pub store_path: String,
-    // 音频格式
-    pub audio_format: String,
-    pub request_id: String,
-}
+// ///音频
+// #[derive(Debug, Deserialize)]
+// pub struct AudioDTO {
+//     // 标题
+//     pub title: String,
+//     // 专辑ID(uuid)
+//     pub collection_id: String,
+//     pub description: String,
+//     // 存储路径
+//     pub store_path: String,
+//     // 音频格式
+//     pub audio_format: String,
+//     pub request_id: String,
+// }
 
-///文件夹
-#[derive(Debug, Deserialize)]
-pub struct FolderDTO {
-    // 名称
-    pub name: String,
-    // 专辑ID(uuid)
-    pub collection_id: String,
-    pub description: String,
-    // 存储路径
-    pub store_path: String,
-    pub request_id: String,
-}
+// ///文件夹
+// #[derive(Debug, Deserialize)]
+// pub struct FolderDTO {
+//     // 名称
+//     pub name: String,
+//     // 专辑ID(uuid)
+//     pub collection_id: String,
+//     pub description: String,
+//     // 存储路径
+//     pub store_path: String,
+//     pub request_id: String,
+// }
 
-///文件
-#[derive(Debug, Deserialize)]
-pub struct FileDTO {
-    // 名称
-    pub name: String,
-    // 文件类型
-    pub mime_type: String,
-    // // 专辑ID(uuid)
-    // pub collection_id: String,
-    // 所属类别
-    pub category_id: String,
-    // 所属类别类型，文件夹,图集
-    pub category_type: String,
-    pub description: String,
-    // 存储路径
-    pub store_path: String,
-    pub request_id: String,
-}
+// ///文件
+// #[derive(Debug, Deserialize)]
+// pub struct FileDTO {
+//     // 名称
+//     pub name: String,
+//     // 文件类型
+//     pub mime_type: String,
+//     // // 专辑ID(uuid)
+//     // pub collection_id: String,
+//     // 所属类别
+//     pub category_id: String,
+//     // 所属类别类型，文件夹,图集
+//     pub category_type: String,
+//     pub description: String,
+//     // 存储路径
+//     pub store_path: String,
+//     pub request_id: String,
+// }
 
 #[derive(Debug, Serialize)]
 pub struct CollectionListDTO {
@@ -123,7 +124,27 @@ pub struct CollectionPageDTO {
     pub title: String,
     pub description: String,
     pub is_public: u8,
-    pub created_time: u64
+    pub listing: u8,
+    pub created_time: u64,
+    pub icon_url: Option<String>,
+    pub nft: Option<NftInfo>
+}
+
+#[derive(Debug, Serialize)]
+pub struct NftInfo {
+    pub id: String,
+    pub package_id: String,
+    pub collection_url: String,
+    pub limit: u64,
+    pub minting_price: u64,
+    pub rewards_quantity: u64,
+    pub mint_id: String,
+    pub policy_id: String,
+    pub policy_cap_id: String,
+    pub coin_id: String,
+    pub coin_package_id: String,
+    pub coin_treasury_lock_id: String,
+    pub coin_admin_cap_id: String
 }
 
 #[derive(Debug, Serialize)]
@@ -141,8 +162,19 @@ pub struct CollectionInfoDTO {
     pub title: String,
     pub description: String,
     pub is_public: u8,
+    pub listing: u8,
     pub created_time: u64,
+    pub icon_url: Option<String>,
+    pub nft: Option<NftInfo>,
     pub articles: Vec<ArticleInfoDTO>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CollectionSimpleInfoDTO {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub collection_url: String,
 }
 
 ///图文

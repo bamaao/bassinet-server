@@ -23,6 +23,10 @@ path = "src/test_qr.rs"
 #name = "x509"
 #path = "src/gen_509.rs"
 
+[[bin]]
+name = "rabbitmq"
+path = "src/test_rabbitmq.rs"
+
 [dependencies]
 sea-orm = { version = "1.1.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros", "with-chrono", "debug-print"] }
 
@@ -58,15 +62,13 @@ bytes = "1.0.0"
 chrono = "0.4.38"
 config = "0.15.11"
 
-ipld-core = "0.4.2"
-ipfs-api-backend-hyper = { version = "0.6", features = ["with-hyper-rustls"]}
-ssi = "0.10.2"
+ ipld-core = "0.4.2"
+ ipfs-api-backend-hyper = { version = "0.6", features = ["with-hyper-rustls"]}
+ ssi = "0.10.2"
 
 # ffmpeg-next = "7.1.0"
 
-sui_sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk"}
-# tokio = { version = "1.2", features = ["full"] }
-# anyhow = "1.0"
+# sui_sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk"}
 
 # diesel = { version = "2.2.9", features = ["postgres"] }
 dotenvy = "0.15"
@@ -85,6 +87,8 @@ tokio-test = {version="0.4.4"}
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 tokio-rustls-acme = {version = "0.7.1", features = ["axum"]}
 thiserror = "2.0.12"
+amqprs = {version="2.1.1", features = ["traces", "tracing"]}
+async-trait = "0.1.64"
 
 [dependencies.rocksdb]
 version = "0.23.0"

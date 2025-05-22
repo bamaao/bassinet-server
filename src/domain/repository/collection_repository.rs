@@ -1,7 +1,7 @@
 use anyhow::Ok;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
-use crate::{domain::model::entity::{collection, collection_item, prelude::Collection, prelude::CollectionItem}, infrastructure::database_connection};
+use crate::{domain::model::entity::{collection, collection_item, prelude::{Collection, CollectionItem}}, infrastructure::database_connection::{self, get_db}};
 
 /// 根据collection_id获取专辑 
 pub async fn get_by_id(collection_id: &String) -> Option<collection::Model> {
@@ -39,8 +39,7 @@ pub async fn create_collection(collection: collection::ActiveModel) -> Result<()
 /// 根据title搜索我的专辑
 pub async fn search_collection_by(title: &String, author_id: &String) -> Result<Vec<crate::domain::model::entity::collection::Model>, anyhow::Error> {
     let results = Collection::find().filter(collection::Column::Author.eq(author_id))
-    .filter(collection::Column::Title.eq(title))
-    .filter(collection::Column::Status.eq(1))
+    .filter(Condition::all().add(collection::Column::Title.eq(title)).add(collection::Column::Status.eq(1)))
     .all(database_connection::get_db().as_ref())
     .await;
     if results.is_err() {
@@ -78,4 +77,15 @@ pub async fn get_article_by_id(article_id: &String) -> Option<crate::domain::mod
         }
     }
     Option::None
+}
+
+pub async fn get_all_collections() -> Result<Vec<collection::Model>, anyhow::Error> {
+    let collections = Collection::find().filter(Condition::any().add(collection::Column::IsPublic.eq(1)).add(collection::Column::Listing.eq(1)))
+    .order_by_desc(collection::Column::CreatedTime)
+    .all(get_db().as_ref())
+    .await;
+    if collections.is_err() {
+        return Err(collections.err().unwrap().into())
+    }
+    Ok(collections.unwrap())
 }

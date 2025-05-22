@@ -42,6 +42,7 @@ pub struct AuthBody {
     token_type: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("Wrong credentials")]

@@ -10,9 +10,7 @@ pub struct Model {
     pub nick_name: Option<String>,
     pub avatar: String,
     pub pub_key: Option<String>,
-    pub chain_id: Option<String>,
     pub wallet_address: Option<String>,
-    pub wallet_type: Option<String>,
     pub created_time: DateTime,
     pub status: Option<i32>,
 }

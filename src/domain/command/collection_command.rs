@@ -4,6 +4,7 @@ pub struct CreateCollectionCommand {
     pub description: String,
     pub is_public: u32,
     pub pub_key: String,
+    pub icon_path: String,
 }
 
 #[derive(Debug)]

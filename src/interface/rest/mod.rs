@@ -9,7 +9,7 @@ pub mod assembler;
 pub mod my_collection_api;
 pub mod public_collection_api;
 pub mod logon_api;
-pub mod account;
+pub mod account_api;
 pub mod validate;
 pub mod file_api;
 

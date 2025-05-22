@@ -8,13 +8,13 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub item_id: Option<String>,
+    pub name: String,
     pub mime: String,
     pub length: Option<i32>,
     pub path: Option<String>,
     pub hash: Option<String>,
     pub ipfs: Option<String>,
     pub status: Option<i32>,
-    pub file_name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

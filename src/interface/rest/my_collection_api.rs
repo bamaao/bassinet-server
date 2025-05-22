@@ -1,6 +1,8 @@
-use crate::{application::query_service::my_collection_query_service, domain::repository::account_repository, infrastructure::jwt::Claims};
+use std::sync::Arc;
 
-use axum::{extract::{Path, Query}, http::StatusCode, response::IntoResponse, Json};
+use crate::{application::query_service::my_collection_query_service, domain::repository::account_repository, infrastructure::jwt::Claims, ServerConfig};
+
+use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{application::command_service::collection_application_service, domain::command::collection_command::{CreateArticleCommand, CreateCollectionCommand}, interface::rest::validate::validate_request_id};
 
@@ -9,7 +11,7 @@ use super::dto::{collection::{ArticleDTO, CollectionDTO, CollectionInfoDTO, Coll
 
 
 /// 创建专辑
-pub async fn create_collection(claims: Claims, Json(payload): Json<CollectionDTO>) -> impl IntoResponse {
+pub async fn create_collection(State(config): State<Arc<ServerConfig>>, claims: Claims, Json(payload): Json<CollectionDTO>) -> impl IntoResponse {
     tracing::debug!("{}", serde_json::to_string(&claims).unwrap());
     tracing::debug!("{}", serde_json::to_string(&payload).unwrap());
     let validate_result = validate_request_id(&payload.request_id);
@@ -17,13 +19,19 @@ pub async fn create_collection(claims: Claims, Json(payload): Json<CollectionDTO
         return validate_result.err().unwrap();
     }
 
+    let file_path = std::path::Path::new(&config.assets_path).join("icons").join(&payload.icon_path);
+    if !file_path.is_file() {
+        return (StatusCode::INTERNAL_SERVER_ERROR, "图片文件不存在".to_owned());
+    }
+
     let command = CreateCollectionCommand {
         title: payload.title,
         description: payload.description,
         is_public: payload.is_public,
         pub_key: claims.pubkey,
+        icon_path: payload.icon_path,
     };
-    let application_result = collection_application_service::create_collection(command).await;
+    let application_result = collection_application_service::create_collection(command, &file_path, &config.assets_http_addr).await;
     if application_result.is_err() {
         return (StatusCode::INTERNAL_SERVER_ERROR, application_result.err().unwrap().to_string());
     }
@@ -41,7 +49,7 @@ pub async fn get_simple_collections(claims: Claims) -> Result<Json<CollectionLis
 }
 
 /// 我的专辑(分页查询)
-pub async fn get_my_collections(claims: Claims, Query(args): Query<PageQueryArgs>) -> Result<Json<CollectionPageDTOList>, (StatusCode, String)> {
+pub async fn get_my_collections(State(config): State<Arc<ServerConfig>>, claims: Claims, Query(args): Query<PageQueryArgs>) -> Result<Json<CollectionPageDTOList>, (StatusCode, String)> {
     let exist_accounts = account_repository::find_by_pubkey(&claims.pubkey).await;
     if exist_accounts.is_empty() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "未知账户".to_owned()));
@@ -51,7 +59,7 @@ pub async fn get_my_collections(claims: Claims, Query(args): Query<PageQueryArgs
     let offset = ((page - 1) * page_size) as u64;
     let offset = if offset < 1 {0} else {offset};
     let account_id = exist_accounts.get(0).unwrap().id;
-    let dtos = my_collection_query_service::my_collections(account_id.to_string(), offset, page_size as u64).await;
+    let dtos = my_collection_query_service::my_collections(account_id.to_string(), offset, page_size as u64, &config.assets_http_addr).await;
     let total = my_collection_query_service::count_my_collections(account_id.to_string()).await;
     Ok(Json(CollectionPageDTOList{
         dtos: dtos,
@@ -87,12 +95,12 @@ pub async fn create_article(claims: Claims, Json(payload): Json<ArticleDTO>) -> 
 }
 
 /// 获取专辑详细信息,包括专辑包括的所有内容(目前只有图文)
-pub async fn get_my_collection_info_by_id(claims: Claims, Path(collection_id): Path<String>) -> Result<Json<CollectionInfoDTO>, (StatusCode, String)> {
+pub async fn get_my_collection_info_by_id(State(config): State<Arc<ServerConfig>>, claims: Claims, Path(collection_id): Path<String>) -> Result<Json<CollectionInfoDTO>, (StatusCode, String)> {
     let exist_accounts = account_repository::find_by_pubkey(&claims.pubkey).await;
     if exist_accounts.is_empty() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "未知账户".to_owned()));
     }
-    let response_result = my_collection_query_service::get_my_collection_by(&collection_id, &exist_accounts.get(0).unwrap().id.to_string()).await;
+    let response_result = my_collection_query_service::get_my_collection_by(&collection_id, &exist_accounts.get(0).unwrap().id.to_string(), &config.assets_http_addr).await;
     if response_result.is_err() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, response_result.err().unwrap().to_string()));
     }
