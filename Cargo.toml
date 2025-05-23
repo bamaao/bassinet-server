@@ -12,10 +12,6 @@ name = "ssi"
 path = "src/ssi.rs"
 
 [[bin]]
-name = "testrocksdb"
-path = "src/test_rocksdb.rs"
-
-[[bin]]
 name= "testqr"
 path = "src/test_qr.rs"
 
