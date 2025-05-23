@@ -12,7 +12,7 @@ use crate::domain::{command::collection_command::{CreateArticleCommand, CreateCo
 pub async fn create_collection(command: CreateCollectionCommand, icon_file_path: &PathBuf, assets_path: &String) -> Result<String, anyhow::Error> {
     // TODO 参数校验
     let id = uuid::Uuid::new_v4();
-    let collection_id = id.to_string().replace('-', "");
+    let collection_id = id.to_string();
     let exist_accounts = account_repository::find_by_pubkey(&command.pub_key).await;
     if exist_accounts.is_empty() {
         anyhow::bail!("未知账户");

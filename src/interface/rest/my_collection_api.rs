@@ -31,7 +31,7 @@ pub async fn create_collection(State(config): State<Arc<ServerConfig>>, claims: 
         pub_key: claims.pubkey,
         icon_path: payload.icon_path,
     };
-    let application_result = collection_application_service::create_collection(command, &file_path, &config.assets_http_addr).await;
+    let application_result = collection_application_service::create_collection(command, &file_path, &config.assets_path).await;
     if application_result.is_err() {
         return (StatusCode::INTERNAL_SERVER_ERROR, application_result.err().unwrap().to_string());
     }
