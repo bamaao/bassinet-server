@@ -1,6 +1,6 @@
 
 use anyhow::Ok;
-use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 
 use crate::{domain::{model::entity::collection, repository::{bassinet_nft_repository, collection_repository::{self}}}, infrastructure::database_connection, interface::rest::dto::collection::{ArticleInfoDTO, CollectionInfoDTO, CollectionPageDTO, CollectionSimpleInfoDTO, NftInfo}};
 
@@ -65,7 +65,7 @@ pub async fn get_collection_by_id(collection_id: &String, assets_path: &String) 
 }
 
 /// 某创作者的专辑分页查询(公开的)
-pub async fn get_author_collections(author_id: String, offset: u64, limit: u64, assets_path: &String) -> Vec<CollectionPageDTO> {
+pub async fn get_author_collections(author_id: String, page: u64, limit: u64, assets_path: &String) -> (Vec<CollectionPageDTO>, u64) {
     let db = database_connection::get_db();
     let collection_pages = collection::Entity::find()
     .filter(
@@ -75,12 +75,13 @@ pub async fn get_author_collections(author_id: String, offset: u64, limit: u64, 
     )
     .filter(collection::Column::Author.eq(author_id))
     .order_by_desc(collection::Column::CreatedTime)
-    .offset(offset).limit(limit).paginate(db.as_ref(), limit);
+    .paginate(db.as_ref(), limit);
     
-    let collections = collection_pages.fetch().await.unwrap();
+    let collections = collection_pages.fetch_page(page - 1).await.unwrap();
     if collections.is_empty() {
-        return vec![]
+        return (vec![], 0)
     }
+    let total = collection_pages.num_items().await.unwrap();
     let mut values = Vec::new();
     for item in collections.into_iter() {
         let nft = bassinet_nft_repository::get_nft_by_collection_id(&item.id.to_string()).await;
@@ -115,19 +116,11 @@ pub async fn get_author_collections(author_id: String, offset: u64, limit: u64, 
                 nft: nft_dto
         });
     }
-    values
-}
-
-/// 某创作者专辑总数(公开的)
-pub async fn count_author_collections(author_id: String) -> u64 {
-    let db = database_connection::get_db();
-    let count = collection::Entity::find().filter(collection::Column::IsPublic.eq(1)).filter(collection::Column::Author.eq(author_id))
-    .count(db.as_ref());
-    return count.await.unwrap();
+    (values, total)
 }
 
 /// 条件搜索专辑,分页查询(公开的)
-pub async fn search_collections(keyword: Option<String>, author: Option<String>, offset: u64, limit: u64, assets_path: &String) -> Vec<CollectionPageDTO> {
+pub async fn search_collections(keyword: Option<String>, author: Option<String>, page: u64, limit: u64, assets_path: &String) -> (Vec<CollectionPageDTO>, u64) {
     let db = database_connection::get_db();
 
     let collection_pages = if keyword.is_some() && author.is_some() {
@@ -145,7 +138,7 @@ pub async fn search_collections(keyword: Option<String>, author: Option<String>,
             .add(collection::Column::Author.eq(author.unwrap()))   
         )
         .order_by_desc(collection::Column::CreatedTime)
-        .offset(offset).limit(limit).paginate(db.as_ref(), limit)
+        .paginate(db.as_ref(), limit)
     }else if keyword.is_some() {
         let mut like_condition = String::new();
         like_condition.push_str("%");
@@ -160,7 +153,7 @@ pub async fn search_collections(keyword: Option<String>, author: Option<String>,
             ).add(collection::Column::Title.like(like_condition))
         )
         .order_by_desc(collection::Column::CreatedTime)
-        .offset(offset).limit(limit).paginate(db.as_ref(), limit)
+        .paginate(db.as_ref(), limit)
     }else if author.is_some() {
         collection::Entity::find()
         .filter(
@@ -169,18 +162,19 @@ pub async fn search_collections(keyword: Option<String>, author: Option<String>,
             .add(collection::Column::Author.eq(author.unwrap()))
         )
         .order_by_desc(collection::Column::CreatedTime)
-        .offset(offset).limit(limit).paginate(db.as_ref(), limit)
+        .paginate(db.as_ref(), limit)
     }else {
         collection::Entity::find()
         .filter(Condition::any().add(collection::Column::IsPublic.eq(1)).add(collection::Column::Listing.eq(1)))
         .order_by_desc(collection::Column::CreatedTime)
-        .offset(offset).limit(limit).paginate(db.as_ref(), limit)
+        .paginate(db.as_ref(), limit)
     };
     
-    let collections = collection_pages.fetch().await.unwrap();
+    let collections = collection_pages.fetch_page(page - 1).await.unwrap();
     if collections.is_empty() {
-        return vec![]
+        return (vec![], 0)
     }
+    let total = collection_pages.num_items().await.unwrap();
     let mut values = Vec::new();
     for item in collections.into_iter() {
         let nft = bassinet_nft_repository::get_nft_by_collection_id(&item.id.to_string()).await;
@@ -215,46 +209,7 @@ pub async fn search_collections(keyword: Option<String>, author: Option<String>,
                 nft: nft_dto
         });
     }
-    values
-}
-
-/// 条件搜索专辑总数(公开的)
-pub async fn count_search_collections(keyword: Option<String>, author: Option<String>) -> u64 {
-    let db = database_connection::get_db();
-
-    let count = if keyword.is_some() && author.is_some(){
-        let mut like_condition = String::new();
-        like_condition.push_str("%");
-        like_condition.push_str(keyword.unwrap().as_str());
-        like_condition.push_str("%");
-        collection::Entity::find()
-        .filter(Condition::all()
-        .add(Condition::any().add(collection::Column::IsPublic.eq(1)).add(collection::Column::Listing.eq(1)))
-        .add(collection::Column::Title.like(like_condition))
-        .add(collection::Column::Author.eq(author.unwrap())))
-        .count(db.as_ref()).await.unwrap()
-    }else if keyword.is_some() {
-        let mut like_condition = String::new();
-        like_condition.push_str("%");
-        like_condition.push_str(keyword.unwrap().as_str());
-        like_condition.push_str("%");
-        collection::Entity::find()
-        .filter(Condition::all()
-        .add(Condition::any().add(collection::Column::IsPublic.eq(1)).add(collection::Column::Listing.eq(1)))
-        .add(collection::Column::Title.like(like_condition)))
-        .count(db.as_ref()).await.unwrap()
-    }else if author.is_some() {
-        collection::Entity::find()
-        .filter(Condition::all()
-        .add(Condition::any().add(collection::Column::IsPublic.eq(1)).add(collection::Column::Listing.eq(1)))
-        .add(collection::Column::Author.eq(author.unwrap())))
-        .count(db.as_ref()).await.unwrap()
-    } else {
-        collection::Entity::find()
-        .filter(Condition::any().add(collection::Column::IsPublic.eq(1)).add(collection::Column::Listing.eq(1)))
-        .count(db.as_ref()).await.unwrap()
-    };
-    count
+    (values, total)
 }
 
 /// 获取公开的图文

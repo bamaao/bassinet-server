@@ -27,13 +27,12 @@ pub async fn my_collections(author_id: String, page: u64, limit: u64, assets_pat
     let collection_pages = collection::Entity::find()
     .filter(collection::Column::Author.eq(author_id)).order_by_desc(collection::Column::CreatedTime)
     .paginate(db.as_ref(), limit);
-    // .offset(offset).limit(limit)
     
     let collections = collection_pages.fetch_page(page - 1).await.unwrap();
     if collections.is_empty() {
         return (vec![], 0)
     }
-    let totals = collection_pages.num_items().await.unwrap();
+    let total = collection_pages.num_items().await.unwrap();
     for item in collections.into_iter() {
         let nft = bassinet_nft_repository::get_nft_by_collection_id(&item.id.to_string()).await;
         let mut nft_dto = Option::None;
@@ -67,16 +66,8 @@ pub async fn my_collections(author_id: String, page: u64, limit: u64, assets_pat
                 nft: nft_dto
         });
     }
-    (values, totals)
+    (values, total)
 }
-
-// /// 我的专辑总数
-// pub async fn count_my_collections(author_id: String) -> u64 {
-//     let db = database_connection::get_db();
-//     let count = collection::Entity::find().filter(collection::Column::Author.eq(author_id))
-//     .count(db.as_ref());
-//     return count.await.unwrap();
-// }
 
 /// 专辑详情(我的专辑)
 pub async fn get_my_collection_by(collection_id: &String, author_id: &String, assets_path: &String) -> Result<CollectionInfoDTO, anyhow::Error> {
