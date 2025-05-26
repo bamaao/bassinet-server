@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::{path::Path as FilePath, sync::Arc};
 
-use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
+use axum::{body::Body, extract::{Path, Query, State}, http::{header::{CONTENT_TYPE}, StatusCode}, response::{IntoResponse, Response}, Json};
+use tokio::fs::{self, File};
+use tokio_util::io::ReaderStream;
 
-use crate::{application::query_service::collection_query_service, domain::repository::collection_repository, ServerConfig};
+use crate::{application::query_service::collection_query_service, domain::repository::collection_repository, infrastructure::image_util::{image_type, make_thumbnail}, ServerConfig};
 
 use super::dto::{collection::{ArticleInfoDTO, CollectionInfoDTO, CollectionPageDTOList, CollectionSimpleInfoDTO, PageInfo}, PageQueryArgs};
 
@@ -61,6 +63,71 @@ pub async fn get_collection_simple_by_id(State(config): State<Arc<ServerConfig>>
     Ok(Json(response_result.unwrap()))
 }
 
-// pub async fn get_image(State(config): State<Arc<ServerConfig>>, Path(collection_id): Path<String>) -> impl IntoResponse {
-//     let result = collection_repository::get_by_id(&collection_id).await;
-// }
+/// 获取专辑图片
+pub async fn get_image(State(config): State<Arc<ServerConfig>>, Path(collection_id): Path<String>) -> impl IntoResponse {
+    let collection = collection_repository::get_by_id(&collection_id).await;
+    if collection.is_none() {
+        return StatusCode::NOT_FOUND.into_response()
+    }
+    let collection = collection.unwrap();
+
+    let file_path = config.assets_path.clone() + &collection.icon_url.unwrap();
+    let path = FilePath::new(&file_path);
+    let extension = path.extension();
+    if extension.is_none() {
+        return StatusCode::NOT_FOUND.into_response()
+    }
+    let extension = extension.unwrap().to_str().unwrap();
+    let image_type = image_type(extension);
+    if image_type.is_none() {
+        return StatusCode::NOT_FOUND.into_response()
+    }
+    let file =  File::open(&file_path).await;
+    if file.is_err() {
+        return StatusCode::NOT_FOUND.into_response()
+    }
+    let file = file.unwrap();
+    let stream = ReaderStream::new(file);
+    Response::builder()
+    .header(CONTENT_TYPE, image_type.unwrap())
+    .body(Body::from_stream(stream))
+    .unwrap()
+}
+
+/// 获取专辑缩略图
+pub async fn get_thumbnail(State(config): State<Arc<ServerConfig>>, Path(collection_id): Path<String>) -> impl IntoResponse {
+    let collection = collection_repository::get_by_id(&collection_id).await;
+    if collection.is_none() {
+        return StatusCode::NOT_FOUND.into_response()
+    }
+
+    let file_path = config.assets_path.clone() + &collection.unwrap().icon_url.unwrap();
+    let path = FilePath::new(&file_path);
+    let file_stem = path.file_stem().unwrap();
+    let extension = path.extension().unwrap();
+    let image_type = image_type(extension.to_str().unwrap());
+    if image_type.is_none() {
+        return StatusCode::NOT_FOUND.into_response()
+    }
+    let thumbnail_file_path = config.assets_path.clone() + "/" + &collection_id + "/" + file_stem.to_str().unwrap() + "_thumb" + "." + extension.to_str().unwrap();
+    let file =  File::open(thumbnail_file_path).await;
+    // 缩略图不存在，生成缩略图
+    if file.is_err() {
+        let thumb = make_thumbnail(path).await;
+        if thumb.is_none() {
+           return StatusCode::NOT_FOUND.into_response()
+        }
+        let stream = ReaderStream::new(File::open(thumb.unwrap()).await.unwrap());
+        return 
+        Response::builder()
+        .header(CONTENT_TYPE, image_type.unwrap())
+        .body(Body::from_stream(stream))
+        .unwrap()
+    }
+    let stream = ReaderStream::new(file.unwrap());
+    Response::builder()
+    .header(CONTENT_TYPE, image_type.unwrap())
+    .body(Body::from_stream(stream))
+    .unwrap()
+    
+}

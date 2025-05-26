@@ -5,7 +5,7 @@ use tokio::{fs::File, io::BufWriter};
 use futures::{Stream, TryStreamExt};
 use axum::body::Bytes;
 
-use crate::{application::command_service::file_application_service, domain::command::file_command::AddFileCommand, infrastructure::jwt::Claims, ServerConfig};
+use crate::{application::command_service::file_application_service, domain::command::file_command::AddFileCommand, infrastructure::{image_util::image_type, jwt::Claims}, ServerConfig};
 
 use super::dto::file_entity::{FileEntityDTO, MultiFileEntityDTO};
 
@@ -82,26 +82,29 @@ fn path_is_valid(path: &str) -> bool {
 
 pub async fn upload_icon_file(State(state): State<Arc<ServerConfig>>, _: Claims, mut multipart: Multipart) -> Result<Json<FileEntityDTO>, (StatusCode, String)> {
     let field = multipart.next_field().await.unwrap().unwrap();
-    let name = field.name().unwrap().to_string();
+    // let name = field.name().unwrap().to_string();
     let file_name = field.file_name().unwrap().to_string();
     let content_type = field.content_type().unwrap().to_string();
     // let data = field.bytes().await.unwrap();
     let extension = Path::new(&file_name).extension();
-    let ext = if extension.is_none() {
-        "".to_owned()
-    }else {
-        String::from(extension.unwrap().to_str().unwrap())
-    };
-    println!(
-        "`{name}` (`{file_name}`: `{content_type}`: `{ext}`)"
-    );
+    if extension.is_none() {
+        return Err((StatusCode::INSUFFICIENT_STORAGE, "请上传图片格式文件".to_owned()))
+    }
+    let ext = extension.unwrap().to_str().unwrap();
+    let image_type  = image_type(ext);
+    if image_type.is_none() {
+        return Err((StatusCode::INSUFFICIENT_STORAGE, "请上传图片格式文件".to_owned()))
+    }
+    // println!(
+    //     "`{name}` (`{file_name}`: `{content_type}`: `{ext}`)"
+    // );
     if !content_type.contains("image") {
-        return Err((StatusCode::INSUFFICIENT_STORAGE, "请上传图片格式文件".to_owned()));
+        return Err((StatusCode::INSUFFICIENT_STORAGE, "请上传图片格式文件".to_owned()))
     }
     let mut file_path = String::new();
     file_path.push_str(uuid::Uuid::new_v4().to_string().as_str());
     file_path.push_str(".");
-    file_path.push_str(ext.as_str());
+    file_path.push_str(ext);
     stream_to_icon_file(&file_path, field, &state).await?;
 
     let command = AddFileCommand {

@@ -1,12 +1,11 @@
 
 use std::path::PathBuf;
 
-use anyhow::Ok;
 use chrono::Local;
 use sea_orm::ActiveValue::Set;
 use tokio::fs;
 
-use crate::domain::{command::collection_command::{CreateArticleCommand, CreateCollectionCommand}, model::entity::{collection, collection_item}, repository::{account_repository::{self}, collection_repository::{self}}};
+use crate::{domain::{command::collection_command::{CreateArticleCommand, CreateCollectionCommand}, model::entity::{collection, collection_item}, repository::{account_repository::{self}, collection_repository::{self}}}, infrastructure::image_util::{image_type, make_thumbnail}};
 
 /// 创建专辑
 pub async fn create_collection(command: CreateCollectionCommand, icon_file_path: &PathBuf, assets_path: &String) -> Result<String, anyhow::Error> {
@@ -32,7 +31,17 @@ pub async fn create_collection(command: CreateCollectionCommand, icon_file_path:
         }
     }
     let target_path = std::path::Path::new(&assets_path).join(&collection_id).join(&command.icon_path);
-    let _ = fs::copy(icon_file_path, target_path).await;
+    let extension = target_path.extension();
+    if extension.is_none() {
+        anyhow::bail!("请上传专辑图片文件")
+    }
+    let image_type = image_type(extension.unwrap().to_str().unwrap());
+    if image_type.is_none() {
+        anyhow::bail!("无效图片格式")
+    }
+    let _ = fs::copy(icon_file_path, &target_path).await?;
+    // 创建缩略图
+    let _ = make_thumbnail(&target_path).await;
     let collect = collection::ActiveModel {
         id: Set(id),
         title: Set(command.title),
