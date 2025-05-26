@@ -56,16 +56,16 @@ pub async fn get_my_collections(State(config): State<Arc<ServerConfig>>, claims:
     }
     let page = if args.page.is_none() || args.page.unwrap() < 1 {1} else {args.page.unwrap()};
     let page_size = if args.page_size.is_none() || args.page_size.unwrap() < 1 {10} else {args.page_size.unwrap()};
-    let offset = ((page - 1) * page_size) as u64;
-    let offset = if offset < 1 {0} else {offset};
+    // let offset = ((page - 1) * page_size) as u64;
+    // let offset = if offset < 1 {0} else {offset};
     let account_id = exist_accounts.get(0).unwrap().id;
-    let dtos = my_collection_query_service::my_collections(account_id.to_string(), offset, page_size as u64, &config.assets_http_addr).await;
-    let total = my_collection_query_service::count_my_collections(account_id.to_string()).await;
+    let page_info = my_collection_query_service::my_collections(account_id.to_string(), page as u64, page_size as u64, &config.assets_http_addr).await;
+    let total = page_info.1;
     Ok(Json(CollectionPageDTOList{
-        dtos: dtos,
+        dtos: page_info.0,
         page_info: PageInfo{
             total: total,
-            pages: (total + 9) / 10
+            pages: (total + page_size as u64 - 1) / page_size as u64
         }
     }))
 }

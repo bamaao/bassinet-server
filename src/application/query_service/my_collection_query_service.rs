@@ -20,18 +20,20 @@ pub async fn get_collections_by(author_id: &String) -> CollectionListDTO{
 }
 
 /// 我的专辑分页查询
-pub async fn my_collections(author_id: String, offset: u64, limit: u64, assets_path: &String) -> Vec<CollectionPageDTO> {
+pub async fn my_collections(author_id: String, page: u64, limit: u64, assets_path: &String) -> (Vec<CollectionPageDTO>, u64) {
     let mut values = Vec::new();
 
     let db = database_connection::get_db();
     let collection_pages = collection::Entity::find()
     .filter(collection::Column::Author.eq(author_id)).order_by_desc(collection::Column::CreatedTime)
-    .offset(offset).limit(limit).paginate(db.as_ref(), limit);
+    .paginate(db.as_ref(), limit);
+    // .offset(offset).limit(limit)
     
-    let collections = collection_pages.fetch().await.unwrap();
+    let collections = collection_pages.fetch_page(page - 1).await.unwrap();
     if collections.is_empty() {
-        return vec![]
+        return (vec![], 0)
     }
+    let totals = collection_pages.num_items().await.unwrap();
     for item in collections.into_iter() {
         let nft = bassinet_nft_repository::get_nft_by_collection_id(&item.id.to_string()).await;
         let mut nft_dto = Option::None;
@@ -65,16 +67,16 @@ pub async fn my_collections(author_id: String, offset: u64, limit: u64, assets_p
                 nft: nft_dto
         });
     }
-    values
+    (values, totals)
 }
 
-/// 我的专辑总数
-pub async fn count_my_collections(author_id: String) -> u64 {
-    let db = database_connection::get_db();
-    let count = collection::Entity::find().filter(collection::Column::Author.eq(author_id))
-    .count(db.as_ref());
-    return count.await.unwrap();
-}
+// /// 我的专辑总数
+// pub async fn count_my_collections(author_id: String) -> u64 {
+//     let db = database_connection::get_db();
+//     let count = collection::Entity::find().filter(collection::Column::Author.eq(author_id))
+//     .count(db.as_ref());
+//     return count.await.unwrap();
+// }
 
 /// 专辑详情(我的专辑)
 pub async fn get_my_collection_by(collection_id: &String, author_id: &String, assets_path: &String) -> Result<CollectionInfoDTO, anyhow::Error> {
