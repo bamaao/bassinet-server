@@ -11,7 +11,7 @@ use amqprs::{
 use anyhow::Context;
 use anyhow::anyhow;
 use tokio::time::{sleep, Duration};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::application::command_service::sui_application_service;
 

@@ -4,13 +4,13 @@ use axum::{body::Body, extract::{Path, Query, State}, http::{header::{CONTENT_TY
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-use crate::{application::query_service::collection_query_service, domain::repository::collection_repository, infrastructure::image_util::{image_type, make_thumbnail}, ServerConfig};
+use crate::{application::query_service::{account_query_service, collection_query_service}, domain::repository::collection_repository, infrastructure::{image_util::{image_type, make_thumbnail}, jwt::Claims}, ServerConfig};
 
-use super::dto::{collection::{ArticleInfoDTO, CollectionInfoDTO, CollectionPageDTOList, CollectionSimpleInfoDTO, PageInfo}, PageQueryArgs};
+use super::dto::{collection::{ArticleInfoDTO, CollectionInfoDTO, CollectionItemInfoDTO, CollectionPageDTOList, CollectionSimpleInfoDTO, PageInfo}, PageQueryArgs};
 
 /// 获取专辑详细信息,包括专辑包括的所有内容(目前只有图文)
 pub async fn get_collection_info_by_id(State(config): State<Arc<ServerConfig>>, Path(collection_id): Path<String>) -> Result<Json<CollectionInfoDTO>, (StatusCode, String)> {
-    let response_result = collection_query_service::get_collection_by_id(&collection_id, &config.assets_http_addr).await;
+    let response_result = collection_query_service::get_collection_by_id(&collection_id, &config.assets_http_addr, &config.medias_http_addr).await;
     if response_result.is_err() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, response_result.err().unwrap().to_string()));
     }
@@ -43,11 +43,26 @@ pub async fn search_collections(State(config): State<Arc<ServerConfig>>, Query(a
 
 /// 获取文章详情
 pub async fn get_article_by_id(Path(article_id): Path<String>) -> Result<Json<ArticleInfoDTO>, (StatusCode, String)> {
+    // TODO 鉴权
     let article = collection_query_service::get_article_by_id(article_id).await;
     if article.is_err() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, article.err().unwrap().to_string()));
     }
     Ok(Json(article.unwrap()))
+}
+
+/// 获取视频详情
+pub async fn get_video_by_id(State(config): State<Arc<ServerConfig>>, claims:Claims, Path(video_id): Path<String>) -> Result<Json<CollectionItemInfoDTO>, (StatusCode, String)> {
+    // TODO 鉴权
+    let account = account_query_service::get_account_info(&claims.pubkey).await;
+    if account.is_err() {
+        return Err((StatusCode::BAD_REQUEST, "未知账户".to_owned()))
+    }
+    let video = collection_query_service::get_video_by_id(video_id, &config.medias_http_addr, account.unwrap()).await;
+    if video.is_err() {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, video.err().unwrap().to_string()));
+    }
+    Ok(Json(video.unwrap()))
 }
 
 /// 获取集合简要信息

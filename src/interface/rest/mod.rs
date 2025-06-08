@@ -12,6 +12,7 @@ pub mod logon_api;
 pub mod account_api;
 pub mod validate;
 pub mod file_api;
+pub mod media_api;
 
 pub async fn request_id() -> impl IntoResponse {
     // let pool = redis_connection::get_redis_pool();

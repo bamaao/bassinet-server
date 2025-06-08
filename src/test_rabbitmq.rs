@@ -13,17 +13,14 @@ use thiserror::Error;
 use amqprs::{
     callbacks::{DefaultChannelCallback, DefaultConnectionCallback},
     channel::{
-        BasicAckArguments, BasicCancelArguments, BasicConsumeArguments, Channel, QueueBindArguments, QueueDeclareArguments
+        BasicAckArguments, BasicCancelArguments, BasicConsumeArguments, QueueBindArguments, QueueDeclareArguments
     },
     connection::{Connection, OpenConnectionArguments},
-    consumer::AsyncConsumer,
-    BasicProperties, Deliver,
 };
 use anyhow::Context;
 use anyhow::anyhow;
-use async_trait::async_trait;
 use tokio::time::{sleep, Duration};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Main program entry point. Use a structure that reflects real-world programs,

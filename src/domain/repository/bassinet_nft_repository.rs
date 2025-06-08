@@ -1,18 +1,18 @@
-use sea_orm::{ColumnTrait, DbBackend, EntityTrait, FromQueryResult, QueryFilter, Statement};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::{domain::model::entity::{bassinet_nft, prelude::BassinetNft}, infrastructure::database_connection::get_db};
 
-/// 根据package_id获取NFT信息
-pub async fn get_nft_by_package_id(package_id: &String) -> Option<bassinet_nft::Model> {
-    let nfts = BassinetNft::find().filter(bassinet_nft::Column::PackageId.eq(package_id))
-    .all(get_db().as_ref()).await.unwrap();
+// /// 根据package_id获取NFT信息
+// pub async fn get_nft_by_package_id(package_id: &String) -> Option<bassinet_nft::Model> {
+//     let nfts = BassinetNft::find().filter(bassinet_nft::Column::PackageId.eq(package_id))
+//     .all(get_db().as_ref()).await.unwrap();
 
-    if nfts.is_empty() {
-        return Option::None
-    }
-    let nft = nfts.get(0).unwrap().clone();
-    Some(nft)
-}
+//     if nfts.is_empty() {
+//         return Option::None
+//     }
+//     let nft = nfts.get(0).unwrap().clone();
+//     Some(nft)
+// }
 
 /// 根据package_id获取NFT信息
 pub async fn get_nft_by_collection_id(collection_id: &String) -> Option<bassinet_nft::Model> {

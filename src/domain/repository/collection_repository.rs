@@ -54,8 +54,21 @@ pub async fn create_collection_item(collection_item: collection_item::ActiveMode
     Ok(())
 }
 
-/// 专辑所有图文
-pub async fn get_articles_by(collection_id: &String) -> Result<Vec<crate::domain::model::entity::collection_item::Model>, anyhow::Error> {
+// /// 专辑所有图文
+// pub async fn get_articles_by(collection_id: &String) -> Result<Vec<crate::domain::model::entity::collection_item::Model>, anyhow::Error> {
+//     let results = CollectionItem::find().filter(collection_item::Column::CollectionId.eq(collection_id))
+//     .filter(collection_item::Column::Status.eq(1))
+//     .order_by_desc(collection_item::Column::CreatedTime)
+//     .all(database_connection::get_db().as_ref())
+//     .await;
+//     if results.is_err() {
+//         return Err(results.err().unwrap().into());
+//     }
+//     Ok(results.unwrap())
+// }
+
+/// 专辑所有内容
+pub async fn get_items_by(collection_id: &String) -> Result<Vec<crate::domain::model::entity::collection_item::Model>, anyhow::Error> {
     let results = CollectionItem::find().filter(collection_item::Column::CollectionId.eq(collection_id))
     .filter(collection_item::Column::Status.eq(1))
     .order_by_desc(collection_item::Column::CreatedTime)
@@ -77,6 +90,11 @@ pub async fn get_article_by_id(article_id: &String) -> Option<crate::domain::mod
         }
     }
     Option::None
+}
+
+/// 专辑项
+pub async fn get_item_by(item_id: &String) -> Option<crate::domain::model::entity::collection_item::Model> {
+    CollectionItem::find_by_id(Uuid::parse_str(&item_id).unwrap()).one(database_connection::get_db().as_ref()).await.unwrap()
 }
 
 pub async fn get_all_collections() -> Result<Vec<collection::Model>, anyhow::Error> {

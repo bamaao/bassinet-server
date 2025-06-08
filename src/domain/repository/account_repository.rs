@@ -4,7 +4,7 @@
 // }
 
 use anyhow::anyhow;
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::{domain::model::entity::{account, prelude::Account}, infrastructure::database_connection::get_db};
 
@@ -24,8 +24,8 @@ pub async fn get_account_by(pub_key: &String) -> Result<account::Model, anyhow::
     Ok(account.unwrap().clone())
 }
 
-/// 根据wallet_address获取账户信息
-pub async fn find_by_wallet_address(wallet_address: &String) -> Vec<account::Model> {
-    Account::find().filter(account::Column::WalletAddress.eq(wallet_address))
-    .all(get_db().as_ref()).await.unwrap()
-}
+// /// 根据wallet_address获取账户信息
+// pub async fn find_by_wallet_address(wallet_address: &String) -> Vec<account::Model> {
+//     Account::find().filter(account::Column::WalletAddress.eq(wallet_address))
+//     .all(get_db().as_ref()).await.unwrap()
+// }

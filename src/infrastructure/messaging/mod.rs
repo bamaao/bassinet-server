@@ -1,20 +1,5 @@
-use std::{env, sync::Arc};
-use serde_json::Value;
-use thiserror::Error;
-
-use amqprs::{
-    callbacks::{DefaultChannelCallback, DefaultConnectionCallback},
-    channel::{
-        BasicAckArguments, BasicCancelArguments, BasicConsumeArguments, QueueBindArguments, QueueDeclareArguments
-    },
-    connection::{Connection, OpenConnectionArguments},
-};
-use anyhow::Context;
-use anyhow::anyhow;
+use std::env;
 use tokio::time::{sleep, Duration};
-use tracing::{debug, error, info, trace, warn};
-
-use crate::domain::repository::account_repository;
 
 pub mod account_bound_consumer;
 pub mod coin_published_consumer;
@@ -102,8 +87,8 @@ pub struct Config {
     pub username: String,
 }
 
-#[derive(Error, Debug)]
-pub enum RabbitError {
-    #[error("RabbitMQ server connection lost: {0}")]
-    ConnectionLost(String),
-}
+// #[derive(Error, Debug)]
+// pub enum RabbitError {
+//     #[error("RabbitMQ server connection lost: {0}")]
+//     ConnectionLost(String),
+// }

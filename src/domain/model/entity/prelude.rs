@@ -3,6 +3,7 @@
 pub use super::account::Entity as Account;
 pub use super::bassinet_coin::Entity as BassinetCoin;
 pub use super::bassinet_nft::Entity as BassinetNft;
+pub use super::chunk_list::Entity as ChunkList;
 pub use super::collection::Entity as Collection;
 pub use super::collection_item::Entity as CollectionItem;
-pub use super::file_entity::Entity as FileEntity;
+// pub use super::file_entity::Entity as FileEntity;

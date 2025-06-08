@@ -16,3 +16,14 @@ pub struct CreateArticleCommand {
     pub content: String,
     pub pub_key: String,
 }
+
+#[derive(Debug)]
+pub struct AddVideoCommand {
+    pub collection_id: String,
+    pub title: String,
+    pub description: String,
+    pub is_public: u32,
+    pub video_path: String,
+    pub hash: String,
+    pub pub_key: String,
+}

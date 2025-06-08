@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use crate::{application::query_service::my_collection_query_service, domain::repository::account_repository, infrastructure::jwt::Claims, ServerConfig};
+use crate::{application::query_service::my_collection_query_service, domain::{command::collection_command::AddVideoCommand, repository::account_repository}, infrastructure::jwt::Claims, ServerConfig};
 
 use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{application::command_service::collection_application_service, domain::command::collection_command::{CreateArticleCommand, CreateCollectionCommand}, interface::rest::validate::validate_request_id};
 
-// use super::dto::{collection::{ArticleDTO, AudioDTO, CollectionDTO, CollectionInfoDTO, CollectionListDTO, CollectionPageDTOList, FolderDTO, ImageGalleryDTO, PageInfo, VideoDTO}, PageQueryArgs};
-use super::dto::{collection::{ArticleDTO, CollectionDTO, CollectionInfoDTO, CollectionListDTO, CollectionPageDTOList, PageInfo}, PageQueryArgs};
+use super::dto::{collection::{ArticleDTO, CollectionDTO, CollectionInfoDTO, CollectionListDTO, CollectionPageDTOList, PageInfo}, media::AddVideoPayload, PageQueryArgs};
 
 
 /// 创建专辑
@@ -98,7 +97,7 @@ pub async fn get_my_collection_info_by_id(State(config): State<Arc<ServerConfig>
     if exist_accounts.is_empty() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, "未知账户".to_owned()));
     }
-    let response_result = my_collection_query_service::get_my_collection_by(&collection_id, &exist_accounts.get(0).unwrap().id.to_string(), &config.assets_http_addr).await;
+    let response_result = my_collection_query_service::get_my_collection_by(&collection_id, &exist_accounts.get(0).unwrap().id.to_string(), &config.assets_http_addr, &config.medias_http_addr).await;
     if response_result.is_err() {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, response_result.err().unwrap().to_string()));
     }
@@ -111,11 +110,23 @@ pub async fn get_my_collection_info_by_id(State(config): State<Arc<ServerConfig>
 //     (StatusCode::OK, "")
 // }
 
-// /// 创建视频
-// pub async fn create_video(Json(payload): Json<VideoDTO>) -> impl IntoResponse {
-//     // todo!()
-//     (StatusCode::OK, "")
-// }
+/// 添加视频
+pub async fn add_video(State(state): State<Arc<ServerConfig>>, claims: Claims, Json(payload): Json<AddVideoPayload>) -> impl IntoResponse {
+    let command = AddVideoCommand {
+        collection_id: payload.collection_id,
+        title: payload.title,
+        description: payload.description,
+        is_public: payload.is_public,
+        video_path: payload.video_path,
+        hash: payload.file_hash,
+        pub_key: claims.pubkey,
+    };
+    let add_video_result = collection_application_service::add_video(&command, &state.medias_path).await;
+    if add_video_result.is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR, add_video_result.err().unwrap().to_string())
+    }
+    (StatusCode::OK, "success".to_owned())
+}
 
 // /// 创建音频
 // pub async fn create_audio(Json(payload): Json<AudioDTO>) -> impl IntoResponse {

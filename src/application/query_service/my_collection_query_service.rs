@@ -1,6 +1,6 @@
-use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 
-use crate::{domain::{model::entity::collection, repository::{bassinet_nft_repository, collection_repository}}, infrastructure::database_connection, interface::rest::dto::collection::{ArticleInfoDTO, CollectionInfoDTO, CollectionListDTO, CollectionPageDTO, CollectionSimpleDTO, NftInfo}};
+use crate::{domain::{model::entity::collection, repository::{bassinet_nft_repository, collection_repository}}, infrastructure::database_connection, interface::rest::dto::collection::{CollectionInfoDTO, CollectionItemInfoDTO, CollectionListDTO, CollectionPageDTO, CollectionSimpleDTO, NftInfo}};
 
 /// 根据作者获取专辑列表(简要信息)
 pub async fn get_collections_by(author_id: &String) -> CollectionListDTO{
@@ -70,24 +70,26 @@ pub async fn my_collections(author_id: String, page: u64, limit: u64, assets_pat
 }
 
 /// 专辑详情(我的专辑)
-pub async fn get_my_collection_by(collection_id: &String, author_id: &String, assets_path: &String) -> Result<CollectionInfoDTO, anyhow::Error> {
+pub async fn get_my_collection_by(collection_id: &String, author_id: &String, assets_web_addr: &String, medias_web_addr: &String) -> Result<CollectionInfoDTO, anyhow::Error> {
     let collection = collection_repository::get_my_collection_by_id(collection_id, author_id).await;
     if collection.is_none() {
         anyhow::bail!("未知专辑");
     }
     let collection = collection.unwrap();
-    let articles = collection_repository::get_articles_by(collection_id).await;
-    if articles.is_err() {
-        return Err(articles.err().unwrap());
+    let items = collection_repository::get_items_by(collection_id).await;
+    if items.is_err() {
+        return Err(items.err().unwrap());
     }
-    let article_dtos = articles.unwrap().into_iter().map(|item|{
-        ArticleInfoDTO{
+    let dtos = items.unwrap().into_iter().map(|item|{
+        CollectionItemInfoDTO{
             id: item.id.to_string(),
             title: item.title.unwrap(),
             collection_id: item.collection_id,
             description: if item.description.is_none() {"".to_owned()} else { item.description.unwrap()},
-            content: item.content.unwrap(),
-            content_type: item.category,
+            content: if item.content.is_none() {"".to_owned()} else {item.content.unwrap()},
+            category: item.category,
+            url_path: if item.path.is_none() {"".to_owned()} else {format!("{}/{}", medias_web_addr, item.path.unwrap())},
+            content_type: "".to_owned(),
             created_time: item.created_time.and_utc().timestamp() as u64,
         }
     }).collect();
@@ -120,8 +122,9 @@ pub async fn get_my_collection_by(collection_id: &String, author_id: &String, as
         is_public: collection.is_public as u8,
         listing: collection.listing.unwrap() as u8,
         created_time: collection.created_time.and_utc().timestamp() as u64,
-        icon_url: Some(assets_path.clone() + &collection.icon_url.unwrap()),
+        icon_url: Some(assets_web_addr.clone() + &collection.icon_url.unwrap()),
         nft: nft_dto,
-        articles: article_dtos,
+        items: dtos
+        // articles: article_dtos,
     })
 }

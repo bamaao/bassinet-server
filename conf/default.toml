@@ -5,3 +5,6 @@ assets_path = "G:/bassinet_projects/upload"
 assets_addr = "0.0.0.0:80"
 # 静态文件访问地址，比如图片访问
 assets_http_addr = "http://localhost:80/assets"
+medias_path = "G:/bassinet_projects/media_upload"
+medias_addr = "0.0.0.0:8081"
+medias_http_addr = "http://localhost:8081/medias"

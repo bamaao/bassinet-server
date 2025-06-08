@@ -166,7 +166,8 @@ pub struct CollectionInfoDTO {
     pub created_time: u64,
     pub icon_url: Option<String>,
     pub nft: Option<NftInfo>,
-    pub articles: Vec<ArticleInfoDTO>,
+    // pub articles: Vec<ArticleInfoDTO>,
+    pub items: Vec<CollectionItemInfoDTO>,
 }
 
 #[derive(Debug, Serialize)]
@@ -187,6 +188,24 @@ pub struct ArticleInfoDTO {
     pub collection_id: String,
     pub description: String,
     pub content: String,
+    // 文档类型，目前只支持Markdown
+    pub content_type: String,
+    pub created_time: u64,
+}
+
+/// 专辑项
+#[derive(Debug, Serialize)]
+pub struct CollectionItemInfoDTO {
+    pub id: String,
+    // 标题
+    pub title: String,
+    // 专辑ID(uuid)
+    pub collection_id: String,
+    pub description: String,
+    pub content: String,
+    //类别,article,video
+    pub category: String,
+    pub url_path: String,
     // 文档类型，目前只支持Markdown
     pub content_type: String,
     pub created_time: u64,

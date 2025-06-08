@@ -4,6 +4,7 @@ pub mod logon;
 pub mod collection;
 pub mod file_entity;
 pub mod account;
+pub mod media;
 
 #[derive(Debug, Serialize)]
 pub struct ApiResult {
